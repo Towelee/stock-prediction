@@ -1,5 +1,6 @@
 from pandas_datareader import DataReader
 from datetime import datetime
+from datetime import date
 import numpy as np 
 import pandas as pd
 import matplotlib.pyplot as plt 
@@ -14,11 +15,11 @@ from sklearn.metrics import mean_squared_error
 
 
 ##### Read Data
-company  = 'AAPL'
+company  = 'GOOG'
 #goog = DataReader('GOOG', 'yahoo', datetime(2020,4,1), datetime(2020,5,5))
 #amzn = DataReader('AMZN', 'yahoo', datetime(2020,4,1), datetime(2020,5,5))
-appl = DataReader(company, 'yahoo', datetime(2009, 1, 1), datetime(2020, 6, 25))
-appl.assign(year = lambda x: x.index.year).filter(['Date', 'Close']) ## test for ttsplit function
+dat = DataReader(company, 'yahoo', datetime(2009, 1, 1), datetime.today())
+dat.assign(year = lambda x: x.index.year).filter(['Date', 'Close']) ## test for ttsplit function
 
 ##### Split Train and Test
 
@@ -28,10 +29,12 @@ def ttsplit(df, cutoffyear, target):
 
     return df1[df1.year <= cutoffyear], df1[df1.year > cutoffyear]
 
-train, test = ttsplit(appl, 2017, 'Close')
+train, test = ttsplit(dat, 2017, 'Close')
 
 ##### Scale close prices based on MinMaxScaler on training set
 scaler = MinMaxScaler(feature_range = (0, 1)) # need feature range (0,1) for transforming 1 column 'Close'
+scaler2 = MinMaxScaler(feature_range = (0,1) )
+
 
 # scale train
 train_sc = train.assign(close_scaled = scaler.fit_transform(train.filter(['Close']))) ##
@@ -41,6 +44,10 @@ train_sc_close = train_sc.close_scaled.values.reshape(-1, 1) ## reshape values o
 test_sc = test.assign(close_scaled = scaler.transform(test.filter(['Close'])), 
                       date = lambda x: x.index) ### copy date from index as a column
 test_sc_close = test_sc.close_scaled.values.reshape(-1, 1)
+
+# check scaler behavior in assign() -- same sc_v1 = sc
+train_sc_v1 = scaler2.fit_transform(train.filter(['Close']))
+test_sc_v1 = scaler2.transform(test.filter(['Close']))
 
 ##### Create feature sequences (x) and targets (y) from train and test sets separately (predict 51st day with past 50 days, on 1 day increments)
 def create_dataset(df):
@@ -87,6 +94,8 @@ model.fit(train_x_reshape, train_y, epochs = 50, batch_size = 32)
 pred = model.predict(test_x_reshape)
 pred_unscale = scaler.inverse_transform(pred) # unscale with same scaler as training 
 
+# check scaler behavior
+pred_unscale_v1 = scaler2.inverse_transform(pred)
 ##### Results
 #check that 51st closed_scale in test_sc == 1st test_y
 test_sc[50:51] 
