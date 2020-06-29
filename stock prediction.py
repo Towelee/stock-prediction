@@ -3,6 +3,7 @@ from datetime import datetime
 import numpy as np 
 import pandas as pd
 import matplotlib.pyplot as plt 
+import seaborn as sb 
 plt.style.use('seaborn-whitegrid')
 
 from sklearn.preprocessing import MinMaxScaler
@@ -13,10 +14,10 @@ from sklearn.metrics import mean_squared_error
 
 
 ##### Read Data
-
+company  = 'AAPL'
 #goog = DataReader('GOOG', 'yahoo', datetime(2020,4,1), datetime(2020,5,5))
 #amzn = DataReader('AMZN', 'yahoo', datetime(2020,4,1), datetime(2020,5,5))
-appl = DataReader('AAPL', 'yahoo', datetime(2009, 1, 1), datetime(2020, 6, 25))
+appl = DataReader(company, 'yahoo', datetime(2009, 1, 1), datetime(2020, 6, 25))
 appl.assign(year = lambda x: x.index.year).filter(['Date', 'Close']) ## test for ttsplit function
 
 ##### Split Train and Test
@@ -37,7 +38,8 @@ train_sc = train.assign(close_scaled = scaler.fit_transform(train.filter(['Close
 train_sc_close = train_sc.close_scaled.values.reshape(-1, 1) ## reshape values of closed_scaled
 
 # scale test (with train scaler)
-test_sc = test.assign(close_scaled = scaler.transform(test.filter(['Close'])))
+test_sc = test.assign(close_scaled = scaler.transform(test.filter(['Close'])), 
+                      date = lambda x: x.index) ### copy date from index as a column
 test_sc_close = test_sc.close_scaled.values.reshape(-1, 1)
 
 ##### Create feature sequences (x) and targets (y) from train and test sets separately (predict 51st day with past 50 days, on 1 day increments)
@@ -85,18 +87,22 @@ model.fit(train_x_reshape, train_y, epochs = 50, batch_size = 32)
 pred = model.predict(test_x_reshape)
 pred_unscale = scaler.inverse_transform(pred) # unscale with same scaler as training 
 
-##### Plot Results
-fix, ax = plt.subplots(figsize = (8, 4)) # create grid for plot
-
-plt.plot(appl.Close.values, color = 'red', label = 'True Price')
-ax.plot(range(len(train_y) + 50, len(train_y) + 50 + len(pred_unscale)), pred_unscale, color = 'blue', label = 'Predicted Testing Price')
-plt.legend()
-
 ##### Results
 #check that 51st closed_scale in test_sc == 1st test_y
 test_sc[50:51] 
 test_y[:1]
-test_y_all = test_sc
+
+padded_test = pd.concat([pd.DataFrame(np.repeat(np.nan, 50)), pd.DataFrame(test_y)], axis = 0).reset_index(drop = True) # pad truth (test y) with 50 nan (first prediction is 51st day of test set)
+padded_test.columns = ['test_y'] # change column name
+padded_pred = pd.concat([pd.DataFrame(np.repeat(np.nan, 50)), pd.DataFrame(pred_unscale)], axis = 0).reset_index(drop = True)
+padded_pred.columns = ['pred']
+results= pd.concat([padded_test, padded_pred, test_sc.set_index(padded_test.index)], axis = 1).set_index('date').assign(residual = lambda x: x.Close - x.pred) ## needed to reset index of test_sc to match padded_test (couldn't reset padded test b/c no set_index for Series)
+
+
+##### Plot Results
+plt.figure(figsize = (8, 6))
+sb.lineplot(data = results.query('year >=2020')[['pred', 'Close', 'residual']]).set_title(company)
+sb.lineplot(data = results[['residual']])
 
 
 
