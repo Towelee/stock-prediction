@@ -92,5 +92,11 @@ plt.plot(appl.Close.values, color = 'red', label = 'True Price')
 ax.plot(range(len(train_y) + 50, len(train_y) + 50 + len(pred_unscale)), pred_unscale, color = 'blue', label = 'Predicted Testing Price')
 plt.legend()
 
+##### Results
+#check that 51st closed_scale in test_sc == 1st test_y
+test_sc[50:51] 
+test_y[:1]
+test_y_all = test_sc
+
 
 
