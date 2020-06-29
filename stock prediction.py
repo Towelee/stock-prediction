@@ -1,6 +1,7 @@
 from pandas_datareader import DataReader
 from datetime import datetime
 import numpy as np 
+import pandas as pd
 import matplotlib.pyplot as plt 
 plt.style.use('seaborn-whitegrid')
 
@@ -39,7 +40,7 @@ train_sc_close = train_sc.close_scaled.values.reshape(-1, 1) ## reshape values o
 test_sc = test.assign(close_scaled = scaler.transform(test.filter(['Close'])))
 test_sc_close = test_sc.close_scaled.values.reshape(-1, 1)
 
-##### Create feature sequences (x) and targets (y) from train and test sets separately (predict 51st day with past 50 days)
+##### Create feature sequences (x) and targets (y) from train and test sets separately (predict 51st day with past 50 days, on 1 day increments)
 def create_dataset(df):
 # takes training or test df -> returns feature sequences (x) and corresponding targets (y)
     x = []
@@ -54,8 +55,8 @@ def create_dataset(df):
 
     return x, y
 
-    train_x, train_y = create_dataset(train_sc_close)
-    test_x, test_y = create_dataset(test_sc_close)
+train_x, train_y = create_dataset(train_sc_close)
+test_x, test_y = create_dataset(test_sc_close)
 
 ##### Reshape features (x) for LSTM Layer (need (_, _ , 1)) to make it 3D for RNN
 train_x_reshape = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], 1)) ## shape = (nrow, ncol, 1) -> (records, num_features, 1) -> num_features  = length of feature sequence : 1 makes it 3D for RNN
@@ -63,7 +64,7 @@ test_x_reshape = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
 
 
 
-### Buld model
+##### Buld model
 model = Sequential()
 model.add(LSTM(units = 96, return_sequences = True, input_shape = (train_x_reshape.shape[1], 1)))
 model.add(Dropout(0.2))
@@ -77,8 +78,19 @@ model.add(Dense(units = 1)) #
 
 model.compile(loss = 'mean_squared_error', optimizer = 'adam')
 
+#train
+model.fit(train_x_reshape, train_y, epochs = 50, batch_size = 32)
 
+#predict
+pred = model.predict(test_x_reshape)
+pred_unscale = scaler.inverse_transform(pred) # unscale with same scaler as training 
 
+##### Plot Results
+fix, ax = plt.subplots(figsize = (8, 4)) # create grid for plot
+
+plt.plot(appl.Close.values, color = 'red', label = 'True Price')
+ax.plot(range(len(train_y) + 50, len(train_y) + 50 + len(pred_unscale)), pred_unscale, color = 'blue', label = 'Predicted Testing Price')
+plt.legend()
 
 
 
