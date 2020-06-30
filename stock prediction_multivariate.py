@@ -86,10 +86,6 @@ train_x[2]
 print(train_x.shape, train_y.shape)
 print(test_x.shape, test_y.shape)
 
-##### DONT NEED THIS BECAUSE WE HAVE MULTIPLE FEATUERS ALREADY: Reshape features (x) for LSTM Layer (need (_, _ , 1)) to make it 3D for RNN
-#train_x_reshape = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], 1)) ## shape = (nrow, ncol, 1) -> (records, num_features, 1) -> num_features  = length of feature sequence : 1 makes it 3D for RNN
-#test_x_reshape = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
-
 
 
 ##### Buld model
