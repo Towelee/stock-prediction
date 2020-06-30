@@ -55,12 +55,17 @@ def create_dataset(X, y, time_steps):
     ys = []
 
     for i in range(len(X) - time_steps): # range(start = 0, finish= n-1)
-        vx = X.iloc[i: (i + time_steps)].to_numpy() # 1st x sequence is time 0 to time_step 
+        vx = X.iloc[i: (i + time_steps)].to_numpy() # 1st x sequence is time 0 to time_step -1 (49 = 50-1): returns index 0 to 49
         #train_sc_x.iloc[0:(0 + 50)] # check x where i=0
+        #train_sc_x_test = train_sc_x.reset_index()
+        #train_sc_x_test.iloc[0:(0+50)]
+
         Xs.append(vx)
 
-        vy = y.iloc[i + time_steps] # first y is time_step    
-        #train_sc_y.iloc[0 + 50] # check y i=0  
+        vy = y.iloc[i + time_steps] # first y is time_step (50) iloc[n]: returns index n, iloc[n:m]: returns n to m-1
+        #train_sc_y.iloc[0 + 50] # check y i=0
+        #train_sc_y_test = train_sc_y.reset_index()  
+        #train_sc_y_test.iloc[0:51]
         ys.append(vy)
         
     # checks look good
