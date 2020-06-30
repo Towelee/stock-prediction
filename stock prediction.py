@@ -32,7 +32,7 @@ def ttsplit(df, cutoffyear, target):
 train, test = ttsplit(dat, 2017, 'Close')
 
 ##### Scale close prices based on MinMaxScaler on training set
-scaler = MinMaxScaler(feature_range = (0, 1)) # need feature range (0,1) for transforming 1 column 'Close'
+scaler = MinMaxScaler(feature_range = (0, 1)) # need feature range (0,1) for transforming 1 column 'Close' to range (0,1)
 scaler2 = MinMaxScaler(feature_range = (0,1) )
 
 
@@ -57,7 +57,7 @@ def create_dataset(df):
 
     for i in range(50, df.shape[0]):# shape[0] = rows
         x.append(df[i-50:i, 0]) ### need [, 0] to select element within array
-        y.append(df[i, 0])
+        y.append(df[i, 0]) #### *** should this be i+1? 51st element is the first y? (NO: checked last element of x[0] != y[0])
     
     x = np.array(x)
     y = np.array(y)
