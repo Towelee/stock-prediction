@@ -55,12 +55,15 @@ def create_dataset(X, y, time_steps):
     ys = []
 
     for i in range(len(X) - time_steps): # range(start = 0, finish= n-1)
-        vx = X.iloc[i: (i + time_steps)].to_numpy() # 1st x sequence is time 0 to time_step
+        vx = X.iloc[i: (i + time_steps)].to_numpy() # 1st x sequence is time 0 to time_step 
+        #train_sc_x.iloc[0:(0 + 50)] # check x where i=0
         Xs.append(vx)
 
-        vy = y.iloc[i + time_steps] # first y is time_step      
+        vy = y.iloc[i + time_steps] # first y is time_step    
+        #train_sc_y.iloc[0 + 50] # check y i=0  
         ys.append(vy)
-
+        
+    # checks look good
     return np.array(Xs), np.array(ys)
 
 x_var = ['Volume_sc', 'Close_sc'] 
