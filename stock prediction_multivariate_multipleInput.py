@@ -120,7 +120,7 @@ def buildModel(dataLength, labelLength): # 50, 1
 rnn = buildModel(train_x.shape[1], 1)
 
 ## train
-logdir = "logs/Graph1/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+logdir = "logs/Graphs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
 tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir) # tensorboard --logdir logs/scalars3/
 
 rnn.fit(
@@ -132,10 +132,10 @@ rnn.fit(
         train_y
     ],
      
-epochs = 50, batch_size = 32, 
+epochs = 100, batch_size = 32, 
 callbacks = [tensorboard_callback], 
-#validation_split = 0.1
-#, shuffle = False  ### shuffle = True works better even though it's time series??
+validation_split = 0.05, # using some data for validation split hurts test performance the most
+shuffle = False  ### shuffle = True works better even though it's time series?? -> because of leaked info from future sequences
 )
 
 ##### Predict Test Set
