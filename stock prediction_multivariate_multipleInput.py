@@ -14,7 +14,7 @@ from tensorflow.keras import layers
 
 
 ##### Read Data
-company  = 'AAPL'
+company  = 'GOOG'
 cutoffyear = 2017
 
 dat = DataReader(company, 'yahoo', datetime(2009, 1, 1), datetime.today())
@@ -132,7 +132,7 @@ rnn.fit(
         train_y
     ],
      
-epochs = 20, batch_size = 32, 
+epochs = 50, batch_size = 32, 
 callbacks = [tensorboard_callback], 
 #validation_split = 0.1
 #, shuffle = False  ### shuffle = True works better even though it's time series??
