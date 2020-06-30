@@ -6,10 +6,12 @@ import pandas as pd
 import matplotlib.pyplot as plt 
 import seaborn as sb 
 plt.style.use('seaborn-whitegrid')
-
+import tensorflow as tf
 from sklearn.preprocessing import MinMaxScaler
-from keras.models import Sequential
-from keras.layers import Dense, LSTM, Dropout
+from tensorflow.keras import Sequential
+from tensorflow.keras.layers import Dense, LSTM, Dropout
+#from keras.models import Sequential
+#from keras.layers import Dense, LSTM, Dropout
 import math
 from sklearn.metrics import mean_squared_error
 
@@ -67,6 +69,15 @@ def create_dataset(df):
 train_x, train_y = create_dataset(train_sc_close)
 test_x, test_y = create_dataset(test_sc_close)
 
+## check that 1st x sequence = 0 to timestep
+## check that 1st y element = timestep+1
+train_x[0]
+train_y[0]
+train_x[1]
+
+train_y[1]
+train_x[2]
+
 ##### Reshape features (x) for LSTM Layer (need (_, _ , 1)) to make it 3D for RNN
 train_x_reshape = np.reshape(train_x, (train_x.shape[0], train_x.shape[1], 1)) ## shape = (nrow, ncol, 1) -> (records, num_features, 1) -> num_features  = length of feature sequence : 1 makes it 3D for RNN
 test_x_reshape = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
@@ -88,7 +99,16 @@ model.add(Dense(units = 1)) #
 model.compile(loss = 'mean_squared_error', optimizer = 'adam')
 
 #train
-model.fit(train_x_reshape, train_y, epochs = 50, batch_size = 32)
+logdir = "logs/scalars5/" + datetime.now().strftime("%Y%m%d-%H%M%S")
+tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir)
+
+model.fit(train_x_reshape, train_y, 
+epochs = 50, batch_size = 32, 
+#validation_split = 0.1, 
+#shuffle = False,
+callbacks = [tensorboard_callback])
+
+# $tensorboard --logdir logs/scalars5/ in terminal to get localhost link to tensorboard
 
 #predict
 pred = model.predict(test_x_reshape)

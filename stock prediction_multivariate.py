@@ -131,7 +131,7 @@ results= pd.concat([padded_test, padded_pred, test_all.set_index(padded_test.ind
 
 ##### Plot Results
 sb.lineplot(data = results[['pred', 'Close']]).set_title(company)
-sb.lineplot(data = results[['residual']])
+#sb.lineplot(data = results[['residual']])
 
 
 
