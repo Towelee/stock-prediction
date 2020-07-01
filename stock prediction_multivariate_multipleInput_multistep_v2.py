@@ -11,6 +11,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+import matplotlib
+import matplotlib.pyplot as plt
 
 
 ##### Read Data
@@ -57,12 +59,13 @@ def create_dataset(X, y, time_steps):
     for i in range(len(X) - time_steps): # range(start = 0, finish= n-1)
         vx = X.iloc[i: (i + time_steps)].to_numpy() # 1st x sequence is time 0 to time_step -1 (49 = 50-1): returns index 0 to 49
         #train_sc_x.iloc[0:(0 + 50)] # check x where i=0
-        #train_sc_x_test = train_sc_x.reset_index()
+        train_sc_x_test = train_sc_x.reset_index()
         #train_sc_x_test.iloc[0:(0+50)]
 
         Xs.append(vx)
 
-        vy = y.iloc[i + time_steps] # first y is time_step (50) iloc[n]: returns index n, iloc[n:m]: returns n to m-1
+        ### output = 5 steps into future
+        vy = y.iloc[i + time_steps: i + time_steps + 5].to_numpy()# first y is time_step (50) iloc[n]: returns index n, iloc[n:m]: returns n to m-1
         #train_sc_y.iloc[0 + 50] # check y i=0
         #train_sc_y_test = train_sc_y.reset_index()  
         #train_sc_y_test.iloc[0:51]
@@ -77,11 +80,57 @@ y_var = ['Close_sc']
 train_x, train_y = create_dataset(train_sc_x[x_var], train_sc_y[y_var], timesteps)
 test_x, test_y = create_dataset(test_sc_x[x_var], test_sc_y[y_var], timesteps)
 
-print(train_x.shape, train_y.shape)
+print ('Single window of past history : {}'.format(train_x[0].shape)) ## shapes look correct
+print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) 
+
+train_y[2212] # only contains 2 elements (last 4 targets contain <5 elements in sequence) -> need to include checker to stop when not enough rows for y
+
 print(test_x.shape, test_y.shape)
 
+### Create feature sequences (from Tensorflow Documentation)
+# takes time series(s) and returns feature sequences x as np.array(data), and target y (single step or sequence) as np.array(labels)
+# dataset = x, target = y
+# start_index = 0 (index to start sampling at)
+# end_index = last index of dataset being sampled -> should be len(dataset) - target size to avoid not having enough data for complete target sample at the end
+# history_size = size of feature sequence (x): 50
+# target size = size of target sequence (y): 5
+# step = steps to increment by for each x,y sample (1 to match create_dataset() function in other stock prediction attempts for this project)
+def multivariate_data(dataset, target, start_index, end_index, history_size,
+                      target_size, step, single_step=False):
+  data = []
+  labels = []
+
+  start_index = start_index + history_size
+  if end_index is None:
+    end_index = len(dataset) - target_size
+
+  for i in range(start_index, end_index):
+    indices = range(i-history_size, i, step)
+    data.append(dataset[indices])
+
+    if single_step: 
+      labels.append(target[i+target_size])
+    else:
+      labels.append(target[i:i+target_size])
+
+  return np.array(data), np.array(labels)
+
+x_var = ['Volume_sc', 'Close_sc'] 
+y_var = ['Close_sc']
+
+# need to reset index, drop date index, and to_numpy array for function to work (due to array slicing)
+train_x, train_y = multivariate_data(train_sc_x[x_var].reset_index(drop=True).to_numpy(), train_sc_y[y_var].reset_index(drop=True).to_numpy(), start_index = 0, end_index = None, history_size = 50, target_size = 5, step = 1)
+test_x, test_y = multivariate_data(test_sc_x[x_var].reset_index(drop=True).to_numpy(), test_sc_y[y_var].reset_index(drop=True).to_numpy(), start_index = 0, end_index = None, history_size = 50, target_size = 5, step=1)
+
+print ('Single window of past history : {}'.format(train_x[0].shape)) ## shapes look correct (n rows, 50 steps, 2 features)
+print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) ## (n rows,  5 steps, 1 label
+
+print ('Single window of past history : {}'.format(test_x[0].shape)) ## shapes look correct (50 steps, 2 features)
+print ('\n Target temperature to predict : {}'.format(test_y[0].shape)) ## 5 steps, 1 label
+
+
 ## build model
-def buildModel(dataLength, labelLength): # 50, 1
+def buildModel(dataLength, labelLength): # 50, 5 (predict 5 steps into the future)
 
     # define layers
     close_sc = tf.keras.Input(shape = (dataLength, 1), name = 'close_sc')
@@ -115,7 +164,7 @@ def buildModel(dataLength, labelLength): # 50, 1
 
     return model
 
-rnn = buildModel(train_x.shape[1], 1)
+rnn = buildModel(train_x.shape[1], 5)
 
 ## train
 logdir = "logs/Graphs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -130,7 +179,7 @@ rnn.fit(
         train_y
     ],
      
-epochs = 100, batch_size = 32, 
+epochs = 5, batch_size = 32, 
 callbacks = [tensorboard_callback], 
 validation_split = 0.05, # using some data for validation split hurts test performance the most
 shuffle = False  ### shuffle = True works better even though it's time series?? -> because of leaked info from future sequences
@@ -146,18 +195,13 @@ pred = rnn.predict(
 pred_unscale = scaler_y.inverse_transform(pred) # unscale with same scaler as training 
 
 ##### Results
-padded_test = pd.concat([pd.DataFrame(np.repeat(np.nan, 50)), pd.DataFrame(test_y)], axis = 0).reset_index(drop = True) # pad truth (test y) with 50 nan (first prediction is 51st day of test set)
-padded_test.columns = ['test_y'] # change column name
-padded_pred = pd.concat([pd.DataFrame(np.repeat(np.nan, 50)), pd.DataFrame(pred_unscale)], axis = 0).reset_index(drop = True)
-padded_pred.columns = ['pred']
-results= pd.concat([padded_test, padded_pred, test_all.set_index(padded_test.index)], axis = 1).set_index('date').assign(residual = lambda x: x.Close - x.pred) ## needed to reset index of test_sc to match padded_test (couldn't reset padded test b/c no set_index for Series)
+pred_df = pd.DataFrame(pred_unscale)
+pred_df.columns = ['pred1', 'pred2', 'pred3', 'pred4', 'pred5']
+
+test_y_df = pd.DataFrame(scaler_y.inverse_transform(test_y.reshape(test_y.shape[0], test_y.shape[1])))
+test_y_df.columns = ['truth1', 'truth2', 'truth3', 'truth4', 'truth5']
+res = pd.concat([pred_df, test_y_df], axis = 1)
 
 
-##### Plot Results
-sb.lineplot(data = results[['pred', 'Close']]).set_title(company)
-#sb.lineplot(data = results[['residual']])
-
-
-
-
-
+sb.lineplot(res.pred4, res.truth4)
+sb.lineplot(data = pred_df)

@@ -62,7 +62,8 @@ def create_dataset(X, y, time_steps):
 
         Xs.append(vx)
 
-        vy = y.iloc[i + time_steps] # first y is time_step (50) iloc[n]: returns index n, iloc[n:m]: returns n to m-1
+        ### output = 5 steps into future
+        vy = y.iloc[i + time_steps: i + time_steps + 5].to_numpy()# first y is time_step (50) iloc[n]: returns index n, iloc[n:m]: returns n to m-1
         #train_sc_y.iloc[0 + 50] # check y i=0
         #train_sc_y_test = train_sc_y.reset_index()  
         #train_sc_y_test.iloc[0:51]
@@ -77,11 +78,17 @@ y_var = ['Close_sc']
 train_x, train_y = create_dataset(train_sc_x[x_var], train_sc_y[y_var], timesteps)
 test_x, test_y = create_dataset(test_sc_x[x_var], test_sc_y[y_var], timesteps)
 
-print(train_x.shape, train_y.shape)
+print ('Single window of past history : {}'.format(train_x[0].shape)) ## shapes look correct
+print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) 
+
+train_y[2212] # only contains 2 elements (last 4 targets contain <5 elements in sequence) -> need to include checker to stop when not enough rows for y
+
 print(test_x.shape, test_y.shape)
 
+
+
 ## build model
-def buildModel(dataLength, labelLength): # 50, 1
+def buildModel(dataLength, labelLength): # 50, 5 (predict 5 steps into the future)
 
     # define layers
     close_sc = tf.keras.Input(shape = (dataLength, 1), name = 'close_sc')
@@ -115,7 +122,7 @@ def buildModel(dataLength, labelLength): # 50, 1
 
     return model
 
-rnn = buildModel(train_x.shape[1], 1)
+rnn = buildModel(train_x.shape[1], 5)
 
 ## train
 logdir = "logs/Graphs/" + datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -130,7 +137,7 @@ rnn.fit(
         train_y
     ],
      
-epochs = 100, batch_size = 32, 
+epochs = 5, batch_size = 32, 
 callbacks = [tensorboard_callback], 
 validation_split = 0.05, # using some data for validation split hurts test performance the most
 shuffle = False  ### shuffle = True works better even though it's time series?? -> because of leaked info from future sequences
