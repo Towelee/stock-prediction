@@ -88,9 +88,9 @@ test_x, test_y = multivariate_data(test_sc_x[x_var].reset_index(drop=True).to_nu
 print ('Single window of past history : {}'.format(train_x[0].shape)) ## shapes look correct (n rows, 50 steps, 2 features)
 print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) ## wrong : should be (5,) (n rows,  5 steps, 1 label
 
-## convert shape  
-train_y.shape = (2210, 5)
-test_y.shape = (573, 5)
+## convert shape of target
+train_y.shape = (train_y.shape[0], 5)
+test_y.shape = (test_y.shape[0], 5)
 
 
 print ('Single window of past history : {}'.format(test_x[0].shape)) ## shapes look correct (50 steps, 2 features)
