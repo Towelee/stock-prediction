@@ -49,45 +49,8 @@ test_all = pd.concat([test, test_sc_x, test_sc_y], axis = 1).assign(date = lambd
 
 
 ##### Create feature sequences (x) and targets (y) from train and test sets separately (predict 51st day with past 50 days, on 1 day increments)
-timesteps = 50
-def create_dataset(X, y, time_steps):
-# takes training or test df -> returns feature sequences (x) and corresponding targets (y)
-### use _sc dataframes 
-    Xs = []
-    ys = []
 
-    for i in range(len(X) - time_steps): # range(start = 0, finish= n-1)
-        vx = X.iloc[i: (i + time_steps)].to_numpy() # 1st x sequence is time 0 to time_step -1 (49 = 50-1): returns index 0 to 49
-        #train_sc_x.iloc[0:(0 + 50)] # check x where i=0
-        train_sc_x_test = train_sc_x.reset_index()
-        #train_sc_x_test.iloc[0:(0+50)]
-
-        Xs.append(vx)
-
-        ### output = 5 steps into future
-        vy = y.iloc[i + time_steps: i + time_steps + 5].to_numpy()# first y is time_step (50) iloc[n]: returns index n, iloc[n:m]: returns n to m-1
-        #train_sc_y.iloc[0 + 50] # check y i=0
-        #train_sc_y_test = train_sc_y.reset_index()  
-        #train_sc_y_test.iloc[0:51]
-        ys.append(vy)
-        
-    # checks look good
-    return np.array(Xs), np.array(ys)
-
-x_var = ['Volume_sc', 'Close_sc'] 
-y_var = ['Close_sc']
-
-train_x, train_y = create_dataset(train_sc_x[x_var], train_sc_y[y_var], timesteps)
-test_x, test_y = create_dataset(test_sc_x[x_var], test_sc_y[y_var], timesteps)
-
-print ('Single window of past history : {}'.format(train_x[0].shape)) ## shapes look correct
-print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) 
-
-train_y[2212] # only contains 2 elements (last 4 targets contain <5 elements in sequence) -> need to include checker to stop when not enough rows for y
-
-print(test_x.shape, test_y.shape)
-
-### Create feature sequences (from Tensorflow Documentation)
+# From Tensorflow Documentation on time series predicion
 # takes time series(s) and returns feature sequences x as np.array(data), and target y (single step or sequence) as np.array(labels)
 # dataset = x, target = y
 # start_index = 0 (index to start sampling at)
@@ -123,10 +86,15 @@ train_x, train_y = multivariate_data(train_sc_x[x_var].reset_index(drop=True).to
 test_x, test_y = multivariate_data(test_sc_x[x_var].reset_index(drop=True).to_numpy(), test_sc_y[y_var].reset_index(drop=True).to_numpy(), start_index = 0, end_index = None, history_size = 50, target_size = 5, step=1)
 
 print ('Single window of past history : {}'.format(train_x[0].shape)) ## shapes look correct (n rows, 50 steps, 2 features)
-print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) ## (n rows,  5 steps, 1 label
+print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) ## wrong : should be (5,) (n rows,  5 steps, 1 label
+
+## convert shape  
+train_y.shape = (2210, 5)
+test_y.shape = (573, 5)
+
 
 print ('Single window of past history : {}'.format(test_x[0].shape)) ## shapes look correct (50 steps, 2 features)
-print ('\n Target temperature to predict : {}'.format(test_y[0].shape)) ## 5 steps, 1 label
+print ('\n Target temperature to predict : {}'.format(test_y[0].shape)) ## check that shape conversion worked
 
 
 ## build model
@@ -203,5 +171,6 @@ test_y_df.columns = ['truth1', 'truth2', 'truth3', 'truth4', 'truth5']
 res = pd.concat([pred_df, test_y_df], axis = 1)
 
 
-sb.lineplot(res.pred4, res.truth4)
-sb.lineplot(data = pred_df)
+sb.lineplot(res.pred1, res.truth1)
+sb.lineplot(data = pred_df.iloc[2])
+sb.lineplot(data = test_y_df.iloc[2])
