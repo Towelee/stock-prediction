@@ -159,6 +159,7 @@ results= pd.concat([padded_test, padded_pred, test_all.set_index(padded_test.ind
 ##### Plot Results
 sb.lineplot(data = results[results.index.year >= 2020][['pred', 'Close']]).set_title(company)
 #sb.lineplot(data = results[['residual']])
-
+sb.lineplot(data = results[results.index >= '2020-05-01'][['pred', 'Close']]).set_title(company)
+ #####
 
 
