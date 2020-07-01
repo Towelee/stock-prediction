@@ -14,7 +14,7 @@ from tensorflow.keras import layers
 
 
 ##### Read Data
-company  = 'GOOG'
+company  = 'SNMSF'
 cutoffyear = 2017
 
 dat = DataReader(company, 'yahoo', datetime(2009, 1, 1), datetime.today())
@@ -157,7 +157,7 @@ results= pd.concat([padded_test, padded_pred, test_all.set_index(padded_test.ind
 
 
 ##### Plot Results
-sb.lineplot(data = results[results.index.year >= 2020][['pred', 'Close']]).set_title(company)
+sb.lineplot(data = results[results.index.year >= 2018][['pred', 'Close']]).set_title(company)
 #sb.lineplot(data = results[['residual']])
 sb.lineplot(data = results[results.index >= '2020-05-01'][['pred', 'Close']]).set_title(company)
  #####
