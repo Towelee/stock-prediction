@@ -18,6 +18,7 @@ company  = 'GOOG'
 cutoffyear = 2017
 
 dat = DataReader(company, 'yahoo', datetime(2009, 1, 1), datetime.today())
+dat['diff_highlow'] = dat.High  - dat.Low
 
 ##### Split Train and Test
 train, test = dat[dat.index.year <= cutoffyear ], dat[dat.index.year > cutoffyear]
@@ -28,8 +29,8 @@ scaler_x = MinMaxScaler(feature_range = (0,1))
 scaler_y = MinMaxScaler(feature_range = (0,1))
 
 # scale train
-train_sc_x = pd.DataFrame(scaler_x.fit_transform(train.filter(['Volume', 'Close'])), index = train.index)
-train_sc_x.columns = train.filter(['Volume', 'Close']).columns +  '_sc'
+train_sc_x = pd.DataFrame(scaler_x.fit_transform(train.filter(['Volume', 'Close', 'diff_highlow'])), index = train.index)
+train_sc_x.columns = train.filter(['Volume', 'Close', 'diff_highlow']).columns +  '_sc'
 
 train_sc_y = pd.DataFrame(scaler_y.fit_transform(train.filter(['Close'])), index = train.index)
 train_sc_y.columns = train.filter(['Close']).columns + '_sc'
@@ -37,8 +38,8 @@ train_sc_y.columns = train.filter(['Close']).columns + '_sc'
 train_all = pd.concat([train, train_sc_x, train_sc_y], axis = 1).assign(date = lambda x: x.index) # use for reconciling results later
 
 # scale test (with train scaler)
-test_sc_x = pd.DataFrame(scaler_x.transform(test.filter(['Volume', 'Close'])), index = test.index)
-test_sc_x.columns = test.filter(['Volume', 'Close']).columns +  '_sc'
+test_sc_x = pd.DataFrame(scaler_x.transform(test.filter(['Volume', 'Close', 'diff_highlow'])), index = test.index)
+test_sc_x.columns = test.filter(['Volume', 'Close', 'diff_highlow']).columns +  '_sc'
 
 test_sc_y = pd.DataFrame(scaler_y.transform(test.filter(['Close'])), index = test.index)
 test_sc_y.columns = test.filter(['Close']).columns + '_sc'
@@ -71,7 +72,7 @@ def create_dataset(X, y, time_steps):
     # checks look good
     return np.array(Xs), np.array(ys)
 
-x_var = ['Volume_sc', 'Close_sc'] 
+x_var = ['Volume_sc', 'Close_sc', 'diff_highlow_sc'] 
 y_var = ['Close_sc']
 
 train_x, train_y = create_dataset(train_sc_x[x_var], train_sc_y[y_var], timesteps)
@@ -124,13 +125,14 @@ tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir) # tensorbo
 rnn.fit(
     [
         train_x[:, :, 1], # slice by 3rd dimension of train_x array (2nd column = index 1 = close_sc)
-        train_x[:, :, 0] # index 0 = volume
+        train_x[:, :, 0], # index 0 = volume
+        train_x[:, :, 2] #index 2 = diff_highlow
     ], 
     [
         train_y
     ],
      
-epochs = 100, batch_size = 32, 
+epochs = 50, batch_size = 32, 
 callbacks = [tensorboard_callback], 
 validation_split = 0.05, # using some data for validation split hurts test performance the most
 shuffle = False  ### shuffle = True works better even though it's time series?? -> because of leaked info from future sequences
@@ -140,7 +142,8 @@ shuffle = False  ### shuffle = True works better even though it's time series?? 
 pred = rnn.predict(
     [
         test_x[:, :, 1],
-        test_x[:, :, 0]
+        test_x[:, :, 0], 
+        test_x[:, :, 2]
     ]
 )
 pred_unscale = scaler_y.inverse_transform(pred) # unscale with same scaler as training 
@@ -154,10 +157,8 @@ results= pd.concat([padded_test, padded_pred, test_all.set_index(padded_test.ind
 
 
 ##### Plot Results
-sb.lineplot(data = results[['pred', 'Close']]).set_title(company)
+sb.lineplot(data = results[results.index.year >= 2020][['pred', 'Close']]).set_title(company)
 #sb.lineplot(data = results[['residual']])
-
-
 
 
 
