@@ -86,7 +86,7 @@ train_x, train_y = multivariate_data(train_sc_x[x_var].reset_index(drop=True).to
 test_x, test_y = multivariate_data(test_sc_x[x_var].reset_index(drop=True).to_numpy(), test_sc_y[y_var].reset_index(drop=True).to_numpy(), start_index = 0, end_index = None, history_size = 50, target_size = 5, step=1)
 
 print ('Single window of past history : {}'.format(train_x[0].shape)) ## shapes look correct (n rows, 50 steps, 2 features)
-print ('\n Target temperature to predict : {}'.format(train_y[0].shape)) ## wrong : should be (5,) (n rows,  5 steps, 1 label
+print ('\n Target window to predict : {}'.format(train_y[0].shape)) ## wrong : should be (5,) (n rows,  5 steps, 1 label
 
 ## convert shape of target
 train_y.shape = (train_y.shape[0], 5)
@@ -94,7 +94,7 @@ test_y.shape = (test_y.shape[0], 5)
 
 
 print ('Single window of past history : {}'.format(test_x[0].shape)) ## shapes look correct (50 steps, 2 features)
-print ('\n Target temperature to predict : {}'.format(test_y[0].shape)) ## check that shape conversion worked
+print ('\n Target window to predict : {}'.format(test_y[0].shape)) ## check that shape conversion worked
 
 
 ## build model
@@ -147,7 +147,7 @@ rnn.fit(
         train_y
     ],
      
-epochs = 5, batch_size = 32, 
+epochs = 1, batch_size = 32, 
 callbacks = [tensorboard_callback], 
 validation_split = 0.05, # using some data for validation split hurts test performance the most
 shuffle = False  ### shuffle = True works better even though it's time series?? -> because of leaked info from future sequences
@@ -172,5 +172,5 @@ res = pd.concat([pred_df, test_y_df], axis = 1)
 
 
 sb.lineplot(res.pred1, res.truth1)
-sb.lineplot(data = pred_df.iloc[2])
-sb.lineplot(data = test_y_df.iloc[2])
+sb.lineplot(data = pred_df.iloc[1])
+sb.lineplot(data = test_y_df.iloc[1])
