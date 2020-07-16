@@ -87,14 +87,17 @@ def buildModel(dataLength, labelLength): # 50, 1
     # define layers
     close_sc = tf.keras.Input(shape = (dataLength, 1), name = 'close_sc')
     volume_sc = tf.keras.Input(shape = (dataLength, 1), name = 'volume_sc')
+    diff_highlow_sc = tf.keras.Input(shape = (dataLength, 1), name = 'diff_highlow_sc')
 
     close_sc_layers = tf.keras.layers.LSTM(64, return_sequences = False)(close_sc)
     volume_sc_layers = tf.keras.layers.LSTM(64, return_sequences = False)(volume_sc)
+    diff_highlow_sc_layers = tf.keras.layers.LSTM(64, return_sequences = False)(diff_highlow_sc)
 
     output = tf.keras.layers.concatenate(
         [
             close_sc_layers,
             volume_sc_layers,
+            diff_highlow_sc_layers
         ]
     )
     output = tf.keras.layers.Dense(labelLength, activation = 'linear', name = 'weightedAverage_output')(output)
@@ -104,7 +107,8 @@ def buildModel(dataLength, labelLength): # 50, 1
         inputs = 
         [
             close_sc,
-            volume_sc
+            volume_sc,
+            diff_highlow_sc
         ],
         outputs = 
         [
@@ -132,7 +136,7 @@ rnn.fit(
         train_y
     ],
      
-epochs = 50, batch_size = 32, 
+epochs = 10, batch_size = 32, 
 callbacks = [tensorboard_callback], 
 validation_split = 0.05, # using some data for validation split hurts test performance the most
 shuffle = False  ### shuffle = True works better even though it's time series?? -> because of leaked info from future sequences
