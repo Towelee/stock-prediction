@@ -147,7 +147,7 @@ rnn.fit(
         train_y
     ],
      
-epochs = 10, batch_size = 32, 
+epochs = 75, batch_size = 32, 
 callbacks = [tensorboard_callback], 
 validation_split = 0.05, # using some data for validation split hurts test performance the most
 shuffle = False  ### shuffle = True works better even though it's time series?? -> because of leaked info from future sequences
@@ -176,5 +176,5 @@ res = pd.concat([pred_df, test_y_df], axis = 1)
 # sb.lineplot(data = pred_df.iloc[1])
 # sb.lineplot(data = test_y_df.iloc[1])
 
-plt.plot(res.index, res.pred5)
-plt.plot(res.index, res.truth5)
+plt.plot(res.index, res.pred1)
+plt.plot(res.index, res.truth1)
